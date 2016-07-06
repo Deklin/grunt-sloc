@@ -42,13 +42,15 @@ module.exports = function(grunt) {
     });
 
     var exts = sloc.extensions;
+    
+    var globalCount = resetCounter();
 
-    // Iterate over all specified file groups.
+    // Iterate over all specified file groups.   
     this.files.forEach(function(f) {
       grunt.log.writeln('-------------------------------------------------------------------------');
       grunt.log.writeln('  ');
       grunt.log.writeln('  Target Path: ', f.dest);
-      
+        
       var c, count = resetCounter();
       var src = readDir.readSync(f.dest, f.orig.src, readDir.ABSOLUTE_PATHS);
       var srcFilters = f.orig.src;
@@ -103,6 +105,16 @@ module.exports = function(grunt) {
         count.file++;
       });
 
+      globalCount.total += count.total;
+      globalCount.source += count.source;
+      globalCount.comment += count.comment;
+      globalCount.single += count.single;
+      globalCount.mixed += count.mixed;
+      globalCount.empty += count.empty;
+      globalCount.block += count.block;
+
+      globalCount.file += count.file;
+
       if (options.reportType === 'stdout') {
         var table = new AsciiTable();
         table.removeBorder();
@@ -146,6 +158,52 @@ module.exports = function(grunt) {
       }
 
     });
+    
+    if (options.reportType === 'stdout') {
+        var table = new AsciiTable();
+        table.removeBorder();
+
+        table.addRow('physical lines', String(globalCount.total).green);
+        table.addRow('lines of source code', String(globalCount.source).green);
+        table.addRow('total comment', String(globalCount.comment).cyan);
+        table.addRow('singleline', String(globalCount.single));
+        table.addRow('multiline', String(globalCount.mixed));
+        table.addRow('empty', String(globalCount.empty).red);
+        table.addRow('', '');
+        table.addRow('number of files read', String(globalCount.file).green);
+        table.addRow('mode', options.tolerant ? 'tolerant'.yellow : 'strict'.red);
+        table.addRow('', '');
+
+        grunt.log.writeln('-------------------------------------------------------------------------');
+        grunt.log.writeln('  ');
+        grunt.log.writeln('  Combined Statistics');
+        grunt.log.writeln('  ');
+        grunt.log.writeln(table.toString());
+
+        if (options.reportDetail) {
+          table = new AsciiTable();
+          table.setHeading('extension', 'total', 'source', 'comment', 'single', 'mixed', 'empty', 'block');
+
+          exts.forEach(function(ext) {
+            c = count[ext];
+            if (c) {
+              table.addRow(ext, c.total, c.source, c.comment, c.single, c.mixed, c.empty, c.block);
+            }
+          });
+          grunt.log.writeln(table.toString());
+        }
+
+        grunt.log.writeln(' ');
+      } else if (options.reportType === 'json') {
+
+        if (!options.reportPath) {
+          grunt.log.warn('Please specify the reporting path.');
+        }
+
+        grunt.file.write(options.reportPath, JSON.stringify(count, null, 2));
+        grunt.log.writeln('Create at: ' + options.reportPath.cyan);
+      }
+    
   });
 
 };
