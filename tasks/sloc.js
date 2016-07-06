@@ -45,6 +45,9 @@ module.exports = function(grunt) {
 
     // Iterate over all specified file groups.
     this.files.forEach(function(f) {
+      grunt.log.writeln('-----------------------------------------------');
+      grunt.log.writeln('Target Path: ', f.dest);
+      
       var c, count = resetCounter();
       var src = readDir.readSync(f.dest, f.orig.src, readDir.ABSOLUTE_PATHS);
       var srcFilters = f.orig.src;
